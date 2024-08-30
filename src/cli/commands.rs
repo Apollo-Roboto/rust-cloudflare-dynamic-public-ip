@@ -25,9 +25,16 @@ pub async fn current_command(_args: &CurrentArguments) -> i32 {
 }
 
 #[derive(Debug, Args)]
-pub struct MonitorArguments {}
+pub struct MonitorArguments {
+    #[arg(
+        long,
+        default_value_t = 300,
+        help = "Delay between IP checks in seconds"
+    )]
+    check_delay: u64,
+}
 
-pub async fn monitor_command(_args: &MonitorArguments) -> i32 {
+pub async fn monitor_command(args: &MonitorArguments) -> i32 {
     let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
         .expect("Environment variable CLOUDFLARE_TOKEN is not set");
     let cloudflare_zone_id = std::env::var("CLOUDFLARE_ZONE_ID")
@@ -35,8 +42,7 @@ pub async fn monitor_command(_args: &MonitorArguments) -> i32 {
 
     let cloudflare_client = CloudFlareClient::new(&cloudflare_token, &cloudflare_zone_id);
 
-    // let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(300));
-    let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(5));
+    let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(args.check_delay));
 
     monitor_loop.start();
 
