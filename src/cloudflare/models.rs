@@ -19,6 +19,12 @@ pub struct SuccessResponseList<T> {
     pub result: Vec<T>,
 }
 
+impl<T> SuccessResponseList<T> {
+    pub fn count(&self) -> usize {
+        self.result.len()
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct UpdateDNSRecordRequest {
     pub content: String,

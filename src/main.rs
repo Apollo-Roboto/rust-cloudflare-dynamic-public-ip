@@ -1,6 +1,5 @@
 mod cli;
 mod cloudflare;
-mod cloudflare_client;
 mod logger;
 
 use logger::LOGGER;

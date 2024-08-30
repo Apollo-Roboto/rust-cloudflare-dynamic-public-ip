@@ -1,0 +1,40 @@
+name: Build
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore: [ "README.md", ".gitignore"]
+  pull_request:
+    branches: [ "main" ]
+    paths-ignore: [ "README.md", ".gitignore"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+
+  build_linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: cargo build
+
+      - name: Test
+        run: cargo test
+
+  build_windows:
+    name: Build on Windows
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: cargo build
+
+      - name: Test
+        run: cargo test
