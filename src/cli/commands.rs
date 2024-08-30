@@ -1,7 +1,7 @@
 use std::{net::Ipv4Addr, sync::mpsc};
 
 use clap::Args;
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 
 use crate::cloudflare::{
     client::{CloudFlareClient, CloudFlareClientError},
@@ -18,17 +18,14 @@ pub async fn current_command(_args: &CurrentArguments) -> i32 {
             0
         }
         None => {
-            info!("Could not get public IP");
+            error!("Could not get public IP");
             1
         }
     }
 }
 
 #[derive(Debug, Args)]
-pub struct MonitorArguments {
-    // #[arg(required = true, help = "The current ip address")]
-    // thinh: i32,
-}
+pub struct MonitorArguments {}
 
 pub async fn monitor_command(_args: &MonitorArguments) -> i32 {
     let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
@@ -38,6 +35,7 @@ pub async fn monitor_command(_args: &MonitorArguments) -> i32 {
 
     let cloudflare_client = CloudFlareClient::new(&cloudflare_token, &cloudflare_zone_id);
 
+    // let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(300));
     let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(5));
 
     monitor_loop.start();
@@ -57,7 +55,7 @@ pub async fn monitor_command(_args: &MonitorArguments) -> i32 {
                 }
             }
             MonitorLoopMessage::CouldNotGetIp => warn!("Could not get public IP"),
-            MonitorLoopMessage::NoChange => debug!("No IP change"),
+            MonitorLoopMessage::NoChange => trace!("No IP change"),
         }
     }
 
@@ -80,12 +78,18 @@ async fn update_ip(
     debug!("Found {} records to update", records.len());
 
     for record in records {
+        let record_name = record.name.clone();
+        debug!("Updating record {}", record_name);
+
         let mut new_record = UpdateDNSRecordRequest::from(record);
         new_record.content = new_ip.to_string();
 
         if let Err(e) = client.set_dns_record(new_record).await {
+            error!("Failed to update record {}", record_name);
             return Err(e);
         }
+
+        info!("Successfully updated record {}", record_name);
     }
 
     Ok(())
@@ -112,16 +116,19 @@ impl MonitorLoop {
 
     fn start(&self) {
         let wait_time = self.wait_time;
+        debug!("Loop wait time: {}ms", wait_time.as_millis());
         let tx = self.tx.clone();
 
         tokio::spawn(async move {
             let start_ip = public_ip::addr_v4()
                 .await
-                .expect("Could not get public ip address");
+                .expect("Could not get public IP address");
+
+            info!("Current IP is {}", start_ip);
 
             let mut old_ip = start_ip;
 
-            debug!("Starting loop");
+            trace!("Starting loop");
 
             loop {
                 if let Some(current_ip) = public_ip::addr_v4().await {

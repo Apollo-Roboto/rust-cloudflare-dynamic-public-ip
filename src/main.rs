@@ -5,12 +5,9 @@ mod logger;
 
 use logger::LOGGER;
 
-use dotenv::dotenv;
-
 #[tokio::main]
 async fn main() {
-    dotenv().ok();
+    dotenvy::dotenv().ok();
     log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Trace);
     std::process::exit(cli::run().await);
 }

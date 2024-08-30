@@ -1,9 +1,10 @@
 # rust-auto-public-ip-update
 
-## Build
+## Build and test
 
 ```
 cargo build
+cargo test
 ```
 
 ## Run
@@ -11,7 +12,6 @@ cargo build
 Create a `.env` file with the following secrets:
 ```env
 CLOUDFLARE_TOKEN=
-DOMAIN=
 CLOUDFLARE_ZONE_ID=
 ```
 

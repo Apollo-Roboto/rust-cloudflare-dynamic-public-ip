@@ -204,7 +204,7 @@ mod tests {
     #[tokio::test]
     /// this test doesn't mock
     async fn test_get_dns_records_pass() {
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
             .expect("Environment variable CLOUDFLARE_TOKEN is not set");
@@ -222,7 +222,7 @@ mod tests {
     #[tokio::test]
     /// this test doesn't mock
     async fn test_get_dns_records_with_content_pass() {
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
             .expect("Environment variable CLOUDFLARE_TOKEN is not set");
@@ -243,7 +243,7 @@ mod tests {
     #[tokio::test]
     /// this is a temporary test
     async fn test_set_dns_record_pass() {
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
             .expect("Environment variable CLOUDFLARE_TOKEN is not set");
@@ -272,7 +272,7 @@ mod tests {
     #[tokio::test]
     /// this is a temporary test
     async fn test_set_dns_record_content_pass() {
-        dotenv::dotenv().ok();
+        dotenvy::dotenv().ok();
 
         let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
             .expect("Environment variable CLOUDFLARE_TOKEN is not set");

@@ -2,10 +2,36 @@ use clap::{Parser, Subcommand};
 mod commands;
 
 #[derive(Debug, Parser)]
-#[command(name = "auto-public-ip-update", bin_name = "apiu", author="Apollo-Roboto", version, about="Automatically update public ip address from cloudflare dns records", long_about = None)]
+#[command(name = "auto-public-ip-update", bin_name = "apiu", author="Apollo-Roboto", version, about="Automatically update public ip address in cloudflare dns records", long_about = None)]
 pub struct Cli {
+    #[arg(short, long, value_enum, default_value_t = LevelFilterArgument::Info, help = "Set verbosity level")]
+    pub verbose: LevelFilterArgument,
+
     #[command(subcommand)]
     pub command: Commands,
+}
+
+#[derive(clap::ValueEnum, Debug, Clone)]
+pub enum LevelFilterArgument {
+    Off,
+    Error,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+}
+
+impl LevelFilterArgument {
+    pub fn level_filter(&self) -> log::LevelFilter {
+        match self {
+            LevelFilterArgument::Off => log::LevelFilter::Off,
+            LevelFilterArgument::Error => log::LevelFilter::Error,
+            LevelFilterArgument::Warn => log::LevelFilter::Warn,
+            LevelFilterArgument::Info => log::LevelFilter::Info,
+            LevelFilterArgument::Debug => log::LevelFilter::Debug,
+            LevelFilterArgument::Trace => log::LevelFilter::Trace,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -27,6 +53,8 @@ impl Commands {
 
 pub async fn run() -> i32 {
     let parsed_cli = Cli::parse();
+
+    log::set_max_level(parsed_cli.verbose.level_filter());
 
     parsed_cli.command.run().await
 }

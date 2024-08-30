@@ -26,17 +26,15 @@ impl Log for SimpleLogger {
         };
 
         let now = chrono::Local::now();
+        let now_text = now
+            .to_rfc3339_opts(chrono::SecondsFormat::Secs, false)
+            .bright_black();
 
         for (i, line) in record.args().to_string().lines().enumerate() {
             if i == 0 {
-                println!(
-                    "{:<36} {:<8} {}",
-                    now.to_rfc3339().black(),
-                    level_text,
-                    line
-                );
+                println!("{:<26} {:<8} {}", now_text, level_text, line);
             } else {
-                println!("{:<36} {:<8} {}", "", "", line);
+                println!("{:<26} {:<8} {}", "", "", line);
             }
         }
     }
