@@ -22,6 +22,9 @@ cargo run -- --help
 # get the current ip
 cargo run -- current
 
-# monitor changes and update cloudflare dns record
+# see the affected DNS records
+cargo run -- info
+
+# monitor changes and update cloudflare DNS record
 cargo run -- monitor
 ```

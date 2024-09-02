@@ -4,6 +4,13 @@ use std::{net::Ipv4Addr, str::FromStr};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug)]
+#[allow(dead_code)]
+pub enum CloudFlareClientError {
+    Request(reqwest::Error),
+    Api(ErrorResponse),
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
 pub struct ErrorResponse {
     pub errors: Vec<Message>,

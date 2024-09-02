@@ -4,13 +4,6 @@ use reqwest::{Request, StatusCode};
 use super::models::*;
 use std::time::Duration;
 
-#[derive(Debug)]
-#[allow(dead_code)]
-pub enum CloudFlareClientError {
-    Request(reqwest::Error),
-    Api(ErrorResponse),
-}
-
 pub struct CloudFlareClient {
     client: reqwest::Client,
     token: String,

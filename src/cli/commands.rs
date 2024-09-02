@@ -4,8 +4,8 @@ use clap::Args;
 use log::{debug, error, info, trace, warn};
 
 use crate::cloudflare::{
-    client::{CloudFlareClient, CloudFlareClientError},
-    models::UpdateDNSRecordRequest,
+    client::CloudFlareClient,
+    models::{CloudFlareClientError, UpdateDNSRecordRequest},
 };
 
 #[derive(Debug, Args)]
