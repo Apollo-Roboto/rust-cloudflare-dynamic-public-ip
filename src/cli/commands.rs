@@ -95,12 +95,20 @@ pub async fn monitor_command(args: &MonitorArguments) -> i32 {
             MonitorLoopMessage::IpChanged { old_ip, new_ip } => {
                 info!("IP address change detected from {} to {}", old_ip, new_ip);
 
-                match update_ip(&cloudflare_client, old_ip, new_ip).await {
-                    Ok(_) => {
-                        info!("Successfully updated IP to {}", new_ip)
-                    }
-                    Err(e) => {
-                        error!("Failed to update IP: {:?}", e)
+                loop {
+                    match update_ip(&cloudflare_client, old_ip, new_ip).await {
+                        Ok(_) => {
+                            info!("Successfully updated IP to {}", new_ip);
+                            break;
+                        }
+                        Err(e) => {
+                            error!("Failed to update IP: {:?}", e);
+
+                            let delay = std::time::Duration::from_secs(120);
+                            warn!("Retrying in {:?}", delay);
+
+                            tokio::time::sleep(delay).await;
+                        }
                     }
                 }
             }
