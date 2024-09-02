@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{net::Ipv4Addr, str::FromStr};
 
 use chrono::{DateTime, Utc};
@@ -119,6 +120,12 @@ pub enum DNSType {
     TLSA,
     TXT,
     URI,
+}
+
+impl fmt::Display for DNSType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 impl DNSType {

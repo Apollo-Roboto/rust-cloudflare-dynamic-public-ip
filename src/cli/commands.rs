@@ -25,6 +25,50 @@ pub async fn current_command(_args: &CurrentArguments) -> i32 {
 }
 
 #[derive(Debug, Args)]
+pub struct InfoArguments {}
+
+pub async fn info_command(_args: &InfoArguments) -> i32 {
+    let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
+        .expect("Environment variable CLOUDFLARE_TOKEN is not set");
+    let cloudflare_zone_id = std::env::var("CLOUDFLARE_ZONE_ID")
+        .expect("Environment variable CLOUDFLARE_ZONE_ID is not set");
+
+    let cloudflare_client = CloudFlareClient::new(&cloudflare_token, &cloudflare_zone_id);
+
+    let current_ip = public_ip::addr_v4().await.expect("Could not get public IP");
+    info!("Current IP: {}", current_ip);
+
+    let records = match cloudflare_client
+        .get_dns_records_with_content(&current_ip.to_string())
+        .await
+    {
+        Ok(res) => res.result,
+        Err(e) => {
+            error!("Failed to get dns records: {:?}", e);
+            return 1;
+        }
+    };
+
+    if records.len() == 0 {
+        warn!(
+            "No DNS record is using the current public IP {}",
+            current_ip
+        );
+        return 0;
+    }
+
+    let mut text = String::from("Affected records:");
+
+    for record in records {
+        text.push_str(&format!("\n{:<6} {}", record.r#type, record.name));
+    }
+
+    info!("{}", text);
+
+    0
+}
+
+#[derive(Debug, Args)]
 pub struct MonitorArguments {
     #[arg(
         long,

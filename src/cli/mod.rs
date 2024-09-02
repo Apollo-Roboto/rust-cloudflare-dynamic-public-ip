@@ -36,9 +36,11 @@ impl LevelFilterArgument {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    #[command()]
+    #[command(about = "Print the current public IP")]
     Current(commands::CurrentArguments),
-    #[command()]
+    #[command(about = "Print the affected DNS records, useful to test connection to Cloudflare")]
+    Info(commands::InfoArguments),
+    #[command(about = "Monitor and update DNS records on cloudflare when the public IP changes")]
     Monitor(commands::MonitorArguments),
 }
 
@@ -46,6 +48,7 @@ impl Commands {
     pub async fn run(&self) -> i32 {
         match self {
             Commands::Monitor(args) => commands::monitor_command(args).await,
+            Commands::Info(args) => commands::info_command(args).await,
             Commands::Current(args) => commands::current_command(args).await,
         }
     }
