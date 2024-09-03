@@ -1,5 +1,5 @@
 [package]
-name = "rust-auto-public-ip-update"
+name = "rust-cloudflare-dynamic-public-ip"
 description = "Auto update cloudflare dns entries when the public IP changes"
 version = "0.1.0"
 edition = "2021"
