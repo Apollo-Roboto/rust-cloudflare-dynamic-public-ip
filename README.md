@@ -1,4 +1,6 @@
-# rust-auto-public-ip-update
+# rust-cloudflare-dynamic-public-ip
+
+Update public ip in cloudflare's DNS records automatically. You never know when your ISP is pushing updates to your router and cycle your public IP, breaking DNS records, this is my solution.
 
 ## Build and test
 
