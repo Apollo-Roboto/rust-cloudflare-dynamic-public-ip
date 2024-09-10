@@ -30,3 +30,9 @@ cargo run -- info
 # monitor changes and update cloudflare DNS record
 cargo run -- monitor
 ```
+
+### Docker
+
+```
+docker run --rm -it --env-file .env apollo-roboto/cfdpip:latest
+```

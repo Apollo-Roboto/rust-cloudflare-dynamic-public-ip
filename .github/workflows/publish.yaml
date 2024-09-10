@@ -10,7 +10,7 @@ env:
 
 jobs:
 
-  build_linux:
+  docker_publish:
     name: Build Linux
     runs-on: ubuntu-latest
 
