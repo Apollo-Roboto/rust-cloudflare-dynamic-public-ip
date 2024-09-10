@@ -31,5 +31,4 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          # tags: apollo-roboto/cfdpip:${{ github.ref_name }}
-          tags: apollo-roboto/cfdpip:test
+          tags: apollo-roboto/cfdpip:${{ github.ref_name }}
