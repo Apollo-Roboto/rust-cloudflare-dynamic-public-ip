@@ -10,5 +10,5 @@ RUN apt-get update
 RUN apt-get install -y openssl ca-certificates
 RUN rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /usr/local/cargo/bin/rust-cloudflare-dynamic-public-ip /usr/local/bin/cldpip
-ENTRYPOINT ["cldpip"]
+COPY --from=build /usr/local/cargo/bin/rust-cloudflare-dynamic-public-ip /usr/local/bin/cfdpip
+ENTRYPOINT ["cfdpip"]
