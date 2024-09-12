@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use core::fmt;
 use std::{net::Ipv4Addr, str::FromStr};
 
@@ -5,7 +6,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub enum CloudFlareClientError {
     Request(reqwest::Error),
     Api(ErrorResponse),
@@ -18,7 +18,7 @@ pub struct ErrorResponse {
     pub success: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct SuccessResponseList<T> {
     pub errors: Vec<Message>,
     pub messages: Vec<Message>,
@@ -66,7 +66,7 @@ pub struct Message {
     pub message: String,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct ResultInfo {
     pub count: i32,
     pub page: i32,
@@ -74,7 +74,7 @@ pub struct ResultInfo {
     pub total_count: i32,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
 pub struct DNSRecord {
     pub content: String,
     pub name: String,
@@ -105,28 +105,30 @@ impl DNSRecord {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Default)]
+#[repr(i32)]
 pub enum DNSType {
-    A,
-    AAAA,
-    CAA,
-    CERT,
-    CNAME,
-    DNSKEY,
-    DS,
-    HTTPS,
-    LOC,
-    MX,
-    NAPTR,
-    NS,
-    PTR,
-    SMIMEA,
-    SRV,
-    SSHFP,
-    SVCB,
-    TLSA,
-    TXT,
-    URI,
+    #[default]
+    A = 1,
+    AAAA = 28,
+    CAA = 257,
+    CERT = 37,
+    CNAME = 5,
+    DNSKEY = 48,
+    DS = 43,
+    HTTPS = 65,
+    LOC = 29,
+    MX = 15,
+    NAPTR = 35,
+    NS = 2,
+    PTR = 12,
+    SMIMEA = 53,
+    SRV = 33,
+    SSHFP = 44,
+    SVCB = 64,
+    TLSA = 52,
+    TXT = 16,
+    URI = 256,
 }
 
 impl fmt::Display for DNSType {
@@ -138,28 +140,7 @@ impl fmt::Display for DNSType {
 impl DNSType {
     /// https://en.wikipedia.org/wiki/List_of_DNS_record_types
     pub fn id(&self) -> i32 {
-        match self {
-            DNSType::A => 1,
-            DNSType::AAAA => 28,
-            DNSType::CAA => 257,
-            DNSType::CERT => 37,
-            DNSType::CNAME => 5,
-            DNSType::DNSKEY => 48,
-            DNSType::DS => 43,
-            DNSType::HTTPS => 65,
-            DNSType::LOC => 29,
-            DNSType::MX => 15,
-            DNSType::NAPTR => 35,
-            DNSType::NS => 2,
-            DNSType::PTR => 12,
-            DNSType::SMIMEA => 53,
-            DNSType::SRV => 33,
-            DNSType::SSHFP => 44,
-            DNSType::SVCB => 64,
-            DNSType::TLSA => 52,
-            DNSType::TXT => 16,
-            DNSType::URI => 256,
-        }
+        self.clone() as i32
     }
 }
 
@@ -167,4 +148,47 @@ impl DNSType {
 pub struct DNSRecordMeta {
     pub auto_added: bool,
     pub source: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn success_response_list_count() {
+        let mut o = SuccessResponseList::<i32>::default();
+        o.result = vec![1, 2, 3, 4, 5];
+        assert_eq!(o.count(), 5);
+    }
+
+    #[test]
+    fn dns_record_has_tags() {
+        let mut o = DNSRecord::default();
+        o.tags = Some(vec![String::from("a")]);
+        assert_eq!(o.has_tags(), true);
+    }
+
+    #[test]
+    fn dns_record_have_empty_tags() {
+        let mut o = DNSRecord::default();
+        o.tags = Some(vec![]);
+        assert_eq!(o.has_tags(), false);
+    }
+
+    #[test]
+    fn dns_record_have_none_tags() {
+        let mut o = DNSRecord::default();
+        o.tags = None;
+        assert_eq!(o.has_tags(), false);
+    }
+
+    #[test]
+    fn dns_record_content_as_ip_pass() {
+        let mut o = DNSRecord::default();
+        o.content = String::from("127.0.0.1");
+        assert_eq!(
+            o.content_as_ip().unwrap(),
+            std::net::Ipv4Addr::new(127, 0, 0, 1)
+        );
+    }
 }

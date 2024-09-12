@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use log::{debug, warn};
 use reqwest::{Request, StatusCode};
 
@@ -13,12 +15,16 @@ pub struct CloudFlareClient {
 
 impl CloudFlareClient {
     pub fn new(token: &str, zone_id: &str) -> Self {
+        CloudFlareClient::new_with_url(token, zone_id, "https://api.cloudflare.com")
+    }
+
+    pub fn new_with_url(token: &str, zone_id: &str, url: &str) -> Self {
         let client = reqwest::Client::builder().build().unwrap();
         Self {
             client,
             token: String::from(token),
             zone_id: String::from(zone_id),
-            base_url: String::from("https://api.cloudflare.com"),
+            base_url: String::from(url),
         }
     }
 
@@ -190,4 +196,97 @@ impl CloudFlareClient {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use chrono::DateTime;
+    use httpmock::prelude::*;
+
+    use crate::cloudflare::{
+        client::CloudFlareClient,
+        models::{
+            CloudFlareClientError, DNSRecord, DNSType, ErrorResponse, Message, ResultInfo,
+            SuccessResponseList,
+        },
+    };
+
+    fn simple_dnsrecord_reponse() -> SuccessResponseList<DNSRecord> {
+        SuccessResponseList::<DNSRecord> {
+            errors: vec![],
+            messages: vec![],
+            success: true,
+            result_info: ResultInfo {
+                count: 1,
+                page: 1,
+                per_page: 500,
+                total_count: 1,
+            },
+            result: vec![DNSRecord {
+                content: String::from(""),
+                name: String::from(""),
+                proxied: Some(false),
+                r#type: DNSType::A,
+                comment: None,
+                comment_modified_on: None,
+                created_on: DateTime::from_timestamp(0, 0).unwrap(),
+                id: String::from(""),
+                meta: None,
+                modified_on: DateTime::from_timestamp(0, 0).unwrap(),
+                proxiable: true,
+                tags: None,
+                tags_modified_on: None,
+                ttl: None,
+            }],
+        }
+    }
+    fn simple_api_error() -> ErrorResponse {
+        ErrorResponse {
+            errors: vec![Message {
+                code: 0,
+                message: String::from("error"),
+            }],
+            messages: vec![],
+            success: false,
+        }
+    }
+
+    #[tokio::test]
+    async fn get_dns_records_with_content_backend_returns_ok() {
+        let server = MockServer::start();
+        let cloudflare_mock = server.mock(|when, then| {
+            when.method(GET).path_contains("/dns_records");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(&serde_json::to_string(&simple_dnsrecord_reponse()).unwrap());
+        });
+
+        let client = CloudFlareClient::new_with_url("", "1234", &server.url("/"));
+
+        let response = client.get_dns_records_with_content("test").await;
+
+        cloudflare_mock.assert();
+
+        assert_eq!(response.unwrap(), simple_dnsrecord_reponse());
+    }
+
+    #[tokio::test]
+    async fn get_dns_records_with_content_backend_returns_404() {
+        let server = MockServer::start();
+        let cloudflare_mock = server.mock(|when, then| {
+            when.method(GET).path_contains("/dns_records");
+            then.status(404)
+                .header("content-type", "application/json")
+                .body(&serde_json::to_string(&simple_api_error()).unwrap());
+        });
+
+        let client = CloudFlareClient::new_with_url("", "1234", &server.url("/"));
+
+        let response = client.get_dns_records_with_content("test").await;
+
+        cloudflare_mock.assert();
+
+        if let CloudFlareClientError::Api(error) = response.unwrap_err() {
+            assert_eq!(error, simple_api_error());
+        } else {
+            panic!("wrong");
+        }
+    }
+}
