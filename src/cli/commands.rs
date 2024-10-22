@@ -84,27 +84,6 @@ pub struct MonitorArguments {
 pub async fn monitor_command(args: &MonitorArguments) -> i32 {
     let mqtt_client = build_mqtt_client().await;
 
-    // testing the mqtt publishing, REMOVE ME
-    if let Some(ref mqtt_client) = mqtt_client {
-        match mqtt_client
-            .publish_ip_change(IpChangeMessage {
-                old: Ipv4Addr::new(0, 0, 0, 0),
-                new: Ipv4Addr::new(127, 0, 0, 1),
-            })
-            .await
-        {
-            Ok(_) => {
-                println!("publish succesful!");
-            }
-            Err(e) => {
-                println!("failed to publish");
-                println!("{:?}", e);
-            }
-        }
-    }
-
-    return 0;
-
     let cloudflare_client = build_cloudflare_client();
 
     let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(args.check_delay));
@@ -169,13 +148,16 @@ async fn handle_update_ip_message(
     info!("IP address change detected from {} to {}", old_ip, new_ip);
 
     if let Some(ref mqtt_client) = mqtt_client {
-        mqtt_client
+        match mqtt_client
             .publish_ip_change(IpChangeMessage {
                 old: old_ip,
                 new: new_ip,
             })
             .await
-            .unwrap();
+        {
+            Ok(_) => debug!("MQTT message sent"),
+            Err(_) => error!(" Failed to send MQTT message"),
+        }
     }
 
     loop {
@@ -262,7 +244,7 @@ impl MonitorLoop {
 
             let mut old_ip = start_ip;
 
-            trace!("Starting loop");
+            trace!("Starting IP monitoring loop");
 
             loop {
                 if let Some(current_ip) = public_ip::addr_v4().await {
