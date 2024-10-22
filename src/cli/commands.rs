@@ -3,9 +3,12 @@ use std::{net::Ipv4Addr, sync::mpsc};
 use clap::Args;
 use log::{debug, error, info, trace, warn};
 
-use crate::cloudflare::{
-    client::CloudFlareClient,
-    models::{CloudFlareClientError, UpdateDNSRecordRequest},
+use crate::{
+    cloudflare::{
+        client::CloudFlareClient,
+        models::{CloudFlareClientError, UpdateDNSRecordRequest},
+    },
+    mqtt::{IpChangeMessage, MqttClient},
 };
 
 #[derive(Debug, Args)]
@@ -79,12 +82,9 @@ pub struct MonitorArguments {
 }
 
 pub async fn monitor_command(args: &MonitorArguments) -> i32 {
-    let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
-        .expect("Environment variable CLOUDFLARE_TOKEN is not set");
-    let cloudflare_zone_id = std::env::var("CLOUDFLARE_ZONE_ID")
-        .expect("Environment variable CLOUDFLARE_ZONE_ID is not set");
+    let mqtt_client = build_mqtt_client().await;
 
-    let cloudflare_client = CloudFlareClient::new(&cloudflare_token, &cloudflare_zone_id);
+    let cloudflare_client = build_cloudflare_client();
 
     let monitor_loop = MonitorLoop::new(std::time::Duration::from_secs(args.check_delay));
 
@@ -93,24 +93,7 @@ pub async fn monitor_command(args: &MonitorArguments) -> i32 {
     for message in monitor_loop.listen() {
         match message {
             MonitorLoopMessage::IpChanged { old_ip, new_ip } => {
-                info!("IP address change detected from {} to {}", old_ip, new_ip);
-
-                loop {
-                    match update_ip(&cloudflare_client, old_ip, new_ip).await {
-                        Ok(_) => {
-                            info!("Successfully updated IP to {}", new_ip);
-                            break;
-                        }
-                        Err(e) => {
-                            error!("Failed to update IP: {:?}", e);
-
-                            let delay = std::time::Duration::from_secs(120);
-                            warn!("Retrying in {:?}", delay);
-
-                            tokio::time::sleep(delay).await;
-                        }
-                    }
-                }
+                handle_update_ip_message(old_ip, new_ip, &mqtt_client, &cloudflare_client).await
             }
             MonitorLoopMessage::CouldNotGetIp => warn!("Could not get public IP"),
             MonitorLoopMessage::NoChange => trace!("No IP change"),
@@ -118,6 +101,81 @@ pub async fn monitor_command(args: &MonitorArguments) -> i32 {
     }
 
     0
+}
+
+fn build_cloudflare_client() -> CloudFlareClient {
+    trace!("Building CloudFlareClient");
+    let cloudflare_token = std::env::var("CLOUDFLARE_TOKEN")
+        .expect("Environment variable CLOUDFLARE_TOKEN is not set");
+    let cloudflare_zone_id = std::env::var("CLOUDFLARE_ZONE_ID")
+        .expect("Environment variable CLOUDFLARE_ZONE_ID is not set");
+
+    CloudFlareClient::new(&cloudflare_token, &cloudflare_zone_id)
+}
+
+async fn build_mqtt_client() -> Option<MqttClient> {
+    let enabled: bool = std::env::var("MQTT_ENABLED")
+        .unwrap_or(String::from("false"))
+        .parse()
+        .expect("Environment variable MQTT_ENABLED must be a boolean");
+
+    if !enabled {
+        debug!("MQTT is disabled");
+        return None;
+    }
+
+    debug!("MQTT is enabled");
+
+    trace!("Building MqttClient");
+
+    let mqtt_host = std::env::var("MQTT_HOST").expect("Environment variable MQTT_HOST is not set");
+    let mqtt_port: u16 = std::env::var("MQTT_PORT")
+        .unwrap_or(String::from("1883"))
+        .parse()
+        .expect("Environment variable MQTT_PORT must be a valid number");
+    let mqtt_id = std::env::var("MQTT_ID").unwrap_or(String::from("cfdpip"));
+    let mqtt_base_topic = std::env::var("MQTT_BASE_TOPIC").unwrap_or(String::from("cfdpip"));
+
+    Some(MqttClient::new(&mqtt_host, mqtt_port, &mqtt_id, &mqtt_base_topic).await)
+}
+
+async fn handle_update_ip_message(
+    old_ip: Ipv4Addr,
+    new_ip: Ipv4Addr,
+    mqtt_client: &Option<MqttClient>,
+    cloudflare_client: &CloudFlareClient,
+) {
+    info!("IP address change detected from {} to {}", old_ip, new_ip);
+
+    if let Some(ref mqtt_client) = mqtt_client {
+        match mqtt_client
+            .publish_ip_change(IpChangeMessage {
+                old: old_ip,
+                new: new_ip,
+            })
+            .await
+        {
+            Ok(_) => debug!("MQTT message sent"),
+            Err(_) => error!(" Failed to send MQTT message"),
+        }
+    }
+
+    loop {
+        match update_ip(&cloudflare_client, old_ip, new_ip).await {
+            Ok(_) => {
+                info!("Successfully updated IP to {}", new_ip);
+                break;
+            }
+            Err(e) => {
+                error!("Failed to update IP: {:?}", e);
+
+                let delay = std::time::Duration::from_secs(120);
+                warn!("Retrying in {:?}", delay);
+
+                tokio::time::sleep(delay).await;
+            }
+        }
+    }
 }
 
 async fn update_ip(
@@ -186,7 +244,7 @@ impl MonitorLoop {
 
             let mut old_ip = start_ip;
 
-            trace!("Starting loop");
+            trace!("Starting IP monitoring loop");
 
             loop {
                 if let Some(current_ip) = public_ip::addr_v4().await {

@@ -1,6 +1,7 @@
 mod cli;
 mod cloudflare;
 mod logger;
+mod mqtt;
 
 use logger::LOGGER;
 
