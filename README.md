@@ -36,3 +36,17 @@ cargo run -- monitor
 ```
 docker run --rm -it --env-file .env apollo-roboto/cfdpip:latest
 ```
+
+## MQTT
+
+MQTT can be configured with environment variables and is enabled with `MQTT_ENABLED=true`
+
+All variables:
+
+```env
+MQTT_ENABLED
+MQTT_HOST # required
+MQTT_PORT # defaults to 1883
+MQTT_ID # defaults to cfdpip
+MQTT_BASE_TOPIC # defaults to cfdpip
+```
