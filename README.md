@@ -50,3 +50,9 @@ MQTT_PORT # defaults to 1883
 MQTT_ID # defaults to cfdpip
 MQTT_BASE_TOPIC # defaults to cfdpip
 ```
+
+### Topics
+
+| Topic | Example Payload |
+|-------|-----------------|
+| `cfdpip/ipchange` | `{ "old": "1.2.3.4", "new": "1.2.3.5" }` |
